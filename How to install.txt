@@ -1,5 +1,1 @@
-Put the darkrp folder in garrysmod/gamemodes
-
-IF YOU PUT DARKRP IN ADDONS IT WON'T WORK!
-
-REMOVE OLD DARKRP FOLDER BEFORE PUTTING THE NEW ONE IN
+Plonk this into garrysmod/gamemodes/space2113 using whatever you like
