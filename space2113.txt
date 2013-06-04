@@ -1,0 +1,15 @@
+"space2113"
+{
+"base" "sandbox"
+    "title" "Space 2113"
+    "version" "0.0.1"
+    "menusystem" "1"
+
+    "author_name" "Space 2113: Felix Maxwell, LightRP: Rick darkalonio, DarkRP: Rickster, Pcwizdan, Sibre, philxyz, [GNC] Matt, Chrome Bolt, FPtje Falco, Eusion, Drakehawke"
+    "author_email" "felix.a.maxwell@gmail.com"
+    "author_url" ""
+
+    "icon" ""
+    "info" ""
+    "hide" "0"
+}
