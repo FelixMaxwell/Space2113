@@ -309,15 +309,6 @@ function DB.Init()
 				PRIMARY KEY(idx, map)
 			)
 		]])
-		
-		--Job and Faction info
-		DB.Query([[
-			CREATE TABLE IF NOT EXISTS space_rank(
-				uid BIGINT NOT NULL PRIMARY KEY,
-				faction ENUM('Alliance', 'Conglomerate', 'Federation') NOT NULL DEFAULT 'alliance',
-				rank INTEGER NOT NULL DEFAULT 0
-			)
-		]])
 
 		-- SQlite doesn't really handle foreign keys strictly, neither does MySQL by default
 		-- So to keep the DB clean, here's a manual partial foreign key enforcement
@@ -826,36 +817,6 @@ function DB.RetrieveSalary(ply, callback)
 			callback(normal)
 		else
 			callback(r)
-		end
-	end)
-end
-
-function DB.StoreFaction(ply, faction, rank)
-	if faction == 'Conglomerate' || faction == 'Alliance' || faction == 'Federation' then
-		DB.Query([[UPDATE space_rank SET faction = ]] .. faction .. [[, rank = ]] .. rank .. [[ WHERE uid = ]] .. ply:UniqueID()
-		]])
-		return true
-	else
-		return false
-	end
-end
-
-function DB.RetrieveFaction(ply)
-	if not IsValid(ply) then return 0 end
-	
-	DB.QueryValue("SELECT faction FROM space_rank WHERE uid = " .. ply:UniqueID() .. ";", function(r)
-		if not r then
-			ply:SetSelfDarkRPVar("faction", "Alliance")
-		else
-			ply:SetSelfDarkRPVar("faction", "Alliance")
-		end
-	end)
-	
-	DB.QueryValue("SELECT rank FROM space_rank WHERE uid = " .. ply:UniqueID() .. ";", function(r)
-		if not r then
-			ply:SetSelfDarkRPVar("rank", 0)
-		else
-			ply:SetSelfDarkRPVar("rank", r)
 		end
 	end)
 end
