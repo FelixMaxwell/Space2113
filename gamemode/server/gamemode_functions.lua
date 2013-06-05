@@ -702,6 +702,7 @@ local function selectDefaultWeapon(ply)
 end
 
 function GM:OnPlayerChangedTeam(ply, oldTeam, newTeam)
+
 end
 
 function GM:PlayerLoadout(ply)
