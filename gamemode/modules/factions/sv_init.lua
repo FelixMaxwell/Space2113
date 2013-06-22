@@ -1,7 +1,6 @@
 FACTION.DBReady = false
 FACTION.DefaultFaction = 1
 FACTION.DefaultRank = 1
-FACTION.ClearDBPassword = "apple" --TODO: Remove this
 
 --DB SECTION--
 
@@ -96,41 +95,6 @@ function FACTION:CreateCharacterTable( factionid, rankid, tos, tif, tar )
 	return t
 end
 
-function FACTION:DisplayCharacterData( ply, cmd, a )
-	if a == nil then return end
-	local args = string.Explode( " ", a )
-	PrintTable( FACTION:LoadCharacterData( args[1], args[2] ) )
-end
-concommand.Add( "faction_dcd", FACTION.DisplayCharacterData )
-
-function FACTION:SaveCharacterConsole( ply, cmd, a )
-	if a == nil then return end
-	local args = string.Explode( " ", a )
-	FACTION:SaveCharacterData( args[1], args[2], FACTION:CreateCharacterTable( args[3], args[4], args[5], args[6], args[7] ) )
-end
-concommand.Add( "faction_scc", FACTION.SaveCharacterConsole )
-
-function FACTION:DisplayAllCharacters( ply, cmd, a )
-	if not FACTION.DBReady then print("[Factions] Tried to access to an uninitialized database!") return end
-	local ret = sql.Query( "SELECT * FROM factions" )
-	if ret == nil then return
-	elseif ret == false then print("DB Error: " .. sql.LastError() )
-	else PrintTable( ret ) end
-end
-concommand.Add( "faction_dispAll", FACTION.DisplayAllCharacters )
-
---TODO: Remove this
-function FACTION:ResetDB( ply, cmd, a )
-	if a == nil then return end
-	local args = string.Explode( " ", a )
-	if args[1] == FACTION.ClearDBPassword then
-		print( "Dropping factions Table" )
-		sql.Query( "DROP TABLE factions" )
-		FACTION:Init()
-	end
-end
-concommand.Add( "faction_drp", FACTION.ResetDB )
-
 --CHARACTER VARIABLES
 
 function FACTION:UpdatePlayerTime( ply )
@@ -175,6 +139,7 @@ function FACTION:LoadPlayerData( ply )
 	ply.FactionData = char
 	ply.FactionData.save = save
 	ply.FactionData.lastTime = os.time()
+	FACTION:SetRank( ply, tonumber(char.rankid), false )
 	print( "[Factions] Loaded Faction Data for player "..ply:Nick() )
 end
 
@@ -223,7 +188,7 @@ function FACTION:AttemptSetRank( attemptPly, changePly, rank )
 	end
 	if set then
 		if force then
-			FACTION:SetRank( changePly, rank )
+			FACTION:SetRank( changePly, rank, true )
 		else
 			local key = math.random(0,65535)
 			FACTION.RankBuffer[key] = rank
@@ -238,15 +203,16 @@ local function AttemptSetRank( ply, cmd, args )
 end
 concommand.Add( "faction_setrank", AttemptSetRank )
 
-function FACTION:SetRank( ply, rank )
+function FACTION:SetRank( ply, rank, save )
 	ply.FactionData.rankid = rank
-	FACTION:SavePlayerData( ply )
-	print( ply:Nick().."'s rank is now a "..FACTION.Ranks[ply.FactionData.rankid].name )
+	if save then FACTION:SavePlayerData( ply ) end
+	ply:ChangeTeam( FACTION.Ranks[rank].job )
+	print( ply:Nick().."'s rank is now a "..FACTION.Ranks[rank].name )
 end
 
 local function ValidateRank( ply, cmd, args )
 	if FACTION.RankBuffer[tonumber(args[1])] ~= nil then
-		FACTION:SetRank( ply, FACTION.RankBuffer[tonumber(args[1])] )
+		FACTION:SetRank( ply, FACTION.RankBuffer[tonumber(args[1])], true )
 		table.remove( FACTION.RankBuffer, tonumber(args[1]) )
 	end
 end

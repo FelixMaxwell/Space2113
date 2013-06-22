@@ -102,11 +102,6 @@ function FACTION:CreateFactionMenu()
 			hordiv:SetRight(Information)
 		end
 		UpdateInfo()
-
-		local function AddIcon(Model, name, description, Weapons, command)
-			--That should stop the default jobs
-		end
-		
 		local function AddRankToMenu( Model, name, description, Weapons, command )
 			local icon = vgui.Create("SpawnIcon")
 			local IconModel = Model
@@ -135,9 +130,31 @@ function FACTION:CreateFactionMenu()
 			end
 
 			icon.DoClick = function()
-				LocalPlayer():ConCommand("faction_setrank " .. LocalPlayer():UniqueID() .. " " .. command)
-				print( "faction_setrank "..LocalPlayer:UserID().." "..command )
-				frame:Close()
+				hordiv:GetParent():GetParent():Close()
+				local target = vgui.Create( "DFrame" )
+				target:SetTitle( "Select a target" )
+				target:SetVisible( true )
+				target:SetPos( ScrW()/2-100, ScrH()/2-50 )
+				target:SetSize( 200, 100 ) 
+				target:MakePopup()
+				
+				local playerBox = vgui.Create( "DComboBox", target )
+				playerBox:SetPos( 50, 40 )
+				playerBox:SetSize( 100, 20 )
+				local playerID = {}
+				for k, v in pairs( player.GetHumans() ) do
+					playerBox:AddChoice( v:Nick() )
+					playerID[v:Nick()] = v
+				end
+				
+				local selectButton = vgui.Create( "DButton", target )
+				selectButton:SetText( "Select" )
+				selectButton:SetSize( 100, 20 )
+				selectButton:SetPos( 50, 70 )
+				selectButton.DoClick = function ()
+					LocalPlayer():ConCommand( "faction_setrank 1 "..command )
+					target:Close()
+				end
 			end
 
 			if icon:IsValid() then
