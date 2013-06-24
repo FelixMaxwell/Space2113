@@ -353,6 +353,7 @@ function GM:MoneyTab()
 end
 
 function GM:JobsTab()
+	--[[
 	local hordiv = vgui.Create("DHorizontalDivider")
 	hordiv:SetLeftWidth(390)
 	function hordiv.m_DragBar:OnMousePressed() end
@@ -560,6 +561,7 @@ function GM:JobsTab()
 	end
 	hordiv:Update()
 	return hordiv
+	--]]
 end
 
 function GM:EntitiesTab()
