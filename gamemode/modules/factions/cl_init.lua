@@ -5,7 +5,7 @@ hook.Add( "InitPostEntity", "FACTION:InitPlayer", FACTION.InitPlayer );
 
 timer.Create( "factions_save_player_data", 60, 0, function() LocalPlayer():ConCommand( "faction_save" ) print( "[Factions] Saved!" ) end )
 
-function FACTION:CreateFactionMenu()
+function FACTION:CreateFactionTab( faction )
 	local hordiv = vgui.Create("DHorizontalDivider")
 	hordiv:SetLeftWidth(390)
 	function hordiv.m_DragBar:OnMousePressed() end
@@ -104,7 +104,7 @@ function FACTION:CreateFactionMenu()
 		UpdateInfo()
 		local function AddRankToMenu( Model, name, description, Weapons, command )
 			local icon = vgui.Create("SpawnIcon")
-			local IconModel = Model
+			local IconModel = Model[1]
 			icon:SetModel(IconModel)
 
 			icon:SetSize(128, 128)
@@ -130,12 +130,13 @@ function FACTION:CreateFactionMenu()
 			end
 
 			icon.DoClick = function()
-				hordiv:GetParent():GetParent():Close()
+				hordiv:GetParent():GetParent():GetParent():Close()
 				local target = vgui.Create( "DFrame" )
 				target:SetTitle( "Select a target" )
 				target:SetVisible( true )
 				target:SetPos( ScrW()/2-100, ScrH()/2-50 )
 				target:SetSize( 200, 100 ) 
+				target:SetSkin(GAMEMODE.Config.DarkRPSkin)
 				target:MakePopup()
 				
 				local playerBox = vgui.Create( "DComboBox", target )
@@ -162,14 +163,31 @@ function FACTION:CreateFactionMenu()
 			end
 		end
 		
-		for k, v in pairs(FACTION.Ranks) do
-			local job = RPExtraTeams[v.job]
-			AddRankToMenu( job.model, v.name, job.description, job.weapons, v.id )
+		for k, v in pairs(FACTION.Factions[faction].ranks) do
+			local rank = FACTION.Ranks[v]
+			local job = RPExtraTeams[rank.job]
+			AddRankToMenu( job.model, rank.name, job.description, job.weapons, rank.id )
 		end
 	end
 	hordiv:Update()
 	return hordiv
 end
+
+function FACTION:CreateFactionMenu()
+	local root = vgui.Create( "DPropertySheet" )
+	root:SetPos( 5, 30 )
+	root:SetSize( 390, 540 )
+	
+	for k, v in pairs(FACTION.Factions) do
+		root:AddSheet( v.name, FACTION:CreateFactionTab( v.id ), "gui/silkicons/user", false, false, v.name )
+	end
+	
+	local help = vgui.Create( "DPanel" )
+	root:AddSheet( "Help", help, "gui/silkicons/help", false, false, "Help for the Faction system" )
+	
+	return root
+end
+
 hook.Add( "F4MenuTabs", "factions_menutab", function()
 	local tab = GAMEMODE:addF4MenuTab("Faction Menu", FACTION:CreateFactionMenu(), "icon16/user_suit.png")
 	GAMEMODE:removeTab( 2 )

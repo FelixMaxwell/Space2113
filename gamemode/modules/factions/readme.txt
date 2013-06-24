@@ -1,5 +1,5 @@
 ADDING NEW TEAMS
-Add new teams to the sh_newteams.lua file
+Add new teams to the sh_anewteams.lua file
 New factions will be added like this
 FACTION:AddFaction({
 	id = 4, --Keep this unique
