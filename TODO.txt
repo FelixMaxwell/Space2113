@@ -1,0 +1,8 @@
+--URGENT--
+Remove all references to /setjob
+Add protections to stop /setjob
+Add name tags
+
+--Other--
+Sethealth and Setarmor
+Donor
