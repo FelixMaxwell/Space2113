@@ -2,6 +2,8 @@ FACTION.DBReady = false
 FACTION.DefaultFaction = 1
 FACTION.DefaultRank = 1
 
+util.AddNetworkString( "faction_validate" )
+
 --DB SECTION--
 
 function FACTION:Init()
@@ -171,13 +173,13 @@ FACTION.RankBuffer = {}
 function FACTION:AttemptSetRank( attemptPly, changePly, rank )
 	local set = false
 	local force = false
-	if attemptPly:IsAdmin() and not changePly:IsAdmin() then
+	--[[if attemptPly:IsAdmin() and not changePly:IsAdmin() then
 		set = true
 		force = true
 	elseif attemptPly:IsSuperAdmin() then
 		set = true
 		force = true
-	elseif FACTION:GetSuperParent( attemptPly.FactionData.factionid ) == FACTION:GetSuperParent( changePly.FactionData.factionid ) or FACTION.Ranks[rank].public then
+	else--]]if FACTION:GetSuperParent( attemptPly.FactionData.factionid ) == FACTION:GetSuperParent( changePly.FactionData.factionid ) or FACTION.Ranks[rank].public then
 		if FACTION.Ranks[tonumber( attemptPly.FactionData.rankid )].controlLevel >= FACTION.Ranks[tonumber( rank )].level then
 			if changePly.FactionData.timeAtRank >= FACTION.Ranks[rank].minTime or FACTION.Ranks[changePly.FactionData.rankid].level >= FACTION.Ranks[ran].level then
 				if FACTION.Ranks[tonumber( rank )].level <= FACTION.Ranks[tonumber( changePly.FactionData.rankid )].level + 1 then
@@ -192,7 +194,13 @@ function FACTION:AttemptSetRank( attemptPly, changePly, rank )
 		else
 			local key = math.random(0,65535)
 			FACTION.RankBuffer[key] = rank
-			print( "Set rank key: "..key )
+			net.Start( "faction_validate" )
+			net.WriteTable({
+				player = attemptPly,
+				rank = rank,
+				key = key
+			})
+			net.Send( changePly )
 			timer.Simple( 600, function(key) table.remove( FACTION.RankBuffer, key ) end, key )
 		end
 	end
@@ -204,8 +212,14 @@ end
 concommand.Add( "faction_setrank", AttemptSetRank )
 
 function FACTION:SetRank( ply, rank, save )
+	if FACTION.Ranks[ply.FactionData.rankid].faction == FACTION.Ranks[rank].faction then local changeFaction = false
+	else local changeFaction = true end
 	ply.FactionData.rankid = rank
-	if save then FACTION:SavePlayerData( ply ) end
+	if save then 
+		ply.FactionData.timeAtRank = 0
+		if changeFaction then ply.FactionData.timeInFaction = 0 end
+		FACTION:SavePlayerData( ply ) 
+	end
 	ply:ChangeTeam( FACTION.Ranks[rank].job )
 	print( ply:Nick().."'s rank is now a "..FACTION.Ranks[rank].name )
 end
@@ -217,3 +231,17 @@ local function ValidateRank( ply, cmd, args )
 	end
 end
 concommand.Add( "faction_validate", ValidateRank )
+
+--Faction Damage--
+function FACTION:TeamKilling( target, info )
+	local source = info:GetAttacker()
+	if source:IsPlayer() and target:IsPlayer() then
+		if source.FactionData.factionid == target.FactionData.factionid then 
+			info:SetDamage( 0 )
+		end
+	end
+	return info
+end
+hook.Add( "EntityTakeDamage", "FACTION:TeamKilling", function( target, damageInfo )
+	return FACTION:TeamKilling( target, damageInfo )
+end );
