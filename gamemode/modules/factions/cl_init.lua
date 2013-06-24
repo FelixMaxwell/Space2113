@@ -1,3 +1,18 @@
+FACTION.FactionHelpText = {"Factions are the governing bodies of this world",
+"Each faction has a tab for its ranks",
+"Some factions are controled by other factions",
+"When you first start you are part of the civilian faction",
+"You can change to any other faction's ranks that are public",
+"You can also change amongst ranks that are at the same level as yours is",
+"However, you cannot change to higher ranks on your own",
+"In order to rank up you must have someone of a higher rank than you rank you up",
+"Some ranks have a minimum time that you must have been at your last rank before they allow you to rank up",
+"When you select a rank, you will be given a list of players",
+"Any player you select will be given a request to change their rank, if all the conditions have been met",
+"Do not spam other players with rank requests",
+"Admins can set your rank without asking",
+"Ask Felix if you have any other questions"}
+
 function FACTION:InitPlayer()
 	LocalPlayer():ConCommand( "faction_load" )
 end
@@ -67,22 +82,11 @@ function FACTION:CreateFactionTab( faction )
 
 			if type(Info) == "table" and #Info > 0 then
 				for k,v in ipairs(Info) do
-					if type(v) == "table" then
-						for k1,v1 in pairs(v) do
-							local label = vgui.Create("DLabel")
-							label:SetText(v1)
-							label:SizeToContents()
-							if label:IsValid() then
-								Information:AddItem(label)
-							end
-						end
-					else
-						local label = vgui.Create("DLabel")
-						label:SetText(v)
-						label:SizeToContents()
-						if label:IsValid() then
-							Information:AddItem(label)
-						end
+					local label = vgui.Create("DLabel")
+					label:SetText(v)
+					label:SizeToContents()
+					if label:IsValid() then
+						Information:AddItem(label)
 					end
 				end
 			end
@@ -102,7 +106,7 @@ function FACTION:CreateFactionTab( faction )
 			hordiv:SetRight(Information)
 		end
 		UpdateInfo()
-		local function AddRankToMenu( Model, name, description, Weapons, command )
+		local function AddRankToMenu( Model, name, description, Weapons, command, otherInfo )
 			local icon = vgui.Create("SpawnIcon")
 			local IconModel = Model[1]
 			icon:SetModel(IconModel)
@@ -114,7 +118,16 @@ function FACTION:CreateFactionTab( faction )
 				icon.PaintOver = icon.PaintOverHovered
 				Info[1] = name
 				Info[2] = description
-				Info[3] = Weapons
+				if Weapons ~= nil then 
+					for k, v in pairs( Weapons ) do
+						table.insert( Info, v )
+					end
+				end
+				if otherInfo ~= nil then
+					for k, v in pairs( otherInfo ) do
+						table.insert( Info, v )
+					end
+				end
 				model = IconModel
 				UpdateInfo()
 			end
@@ -166,7 +179,11 @@ function FACTION:CreateFactionTab( faction )
 		for k, v in pairs(FACTION.Factions[faction].ranks) do
 			local rank = FACTION.Ranks[v]
 			local job = RPExtraTeams[rank.job]
-			AddRankToMenu( job.model, rank.name, job.description, job.weapons, rank.id )
+			local extraText = {}
+			extraText[1] = "Minimum time: " .. rank.minTime
+			if rank then extraText[2] = "Public: True" else extraText[2] = "Public: False" end
+			extraText[3] = "Level: " .. rank.level
+			AddRankToMenu( job.model, rank.name, job.description, job.weapons, rank.id, extraText )
 		end
 	end
 	hordiv:Update()
@@ -182,7 +199,19 @@ function FACTION:CreateFactionMenu()
 		root:AddSheet( v.name, FACTION:CreateFactionTab( v.id ), "gui/silkicons/user", false, false, v.name )
 	end
 	
-	local help = vgui.Create( "DPanel" )
+	local help = vgui.Create( "DPanelList" )
+	help:SetSpacing( 10 )
+	help:EnableHorizontal( false )
+	help:EnableVerticalScrollbar( true )
+	help:SetSkin( GAMEMODE.Config.DarkRPSkin )
+	for k, v in pairs( FACTION.FactionHelpText ) do
+		local label = vgui.Create( "DLabel" )
+		label:SetText( v )
+		label:SizeToContents()
+		if label:IsValid() then
+			help:AddItem( label )
+		end
+	end
 	root:AddSheet( "Help", help, "gui/silkicons/help", false, false, "Help for the Faction system" )
 	
 	return root
@@ -193,3 +222,41 @@ hook.Add( "F4MenuTabs", "factions_menutab", function()
 	GAMEMODE:removeTab( 2 )
 	GAMEMODE:switchTabOrder( tab, 2 )
 end )
+
+function FACTION:ValidateMenu( setPly, rank, key )
+	local root = vgui.Create( "DFrame" )
+	root:SetTitle( "Rank Change" )
+	root:SetVisible( true )
+	root:SetPos( ScrW()/2-300, 20 )
+	root:SetSize( 600, 100 ) 
+	root:SetSkin(GAMEMODE.Config.DarkRPSkin)
+	root:MakePopup()
+	
+	local panel = vgui.Create( "DPanelList", root )
+	panel:SetPos( 10, 30 )
+	panel:SetSize( 580, 60 )
+	
+	local label = vgui.Create( "DLabel" )
+	label:SetText( setPly:Name() .. " wants to set your rank to " .. FACTION.Ranks[rank].name .. ", allow?" )
+	label:SizeToContents()
+	panel:AddItem( label )
+	
+	local yes = vgui.Create( "DButton" )
+	yes:SetText( "Yes" )
+	yes.DoClick = function ()
+		LocalPlayer():ConCommand( "faction_validate " .. key )
+		root:Close()
+	end
+	panel:AddItem( yes )
+	
+	local no = vgui.Create( "DButton" )
+	no:SetText( "No" )
+	no.DoClick = function ()
+		root:Close()
+	end
+	panel:AddItem( no )
+end
+net.Receive( "faction_validate", function( len, pl )
+	local t = net.ReadTable()
+	FACTION:ValidateMenu( t["player"], t["rank"], t["key"] )
+end)
