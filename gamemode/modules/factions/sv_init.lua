@@ -173,13 +173,13 @@ FACTION.RankBuffer = {}
 function FACTION:AttemptSetRank( attemptPly, changePly, rank )
 	local set = false
 	local force = false
-	--[[if attemptPly:IsAdmin() and not changePly:IsAdmin() then
+	if attemptPly:IsAdmin() and not changePly:IsAdmin() then
 		set = true
 		force = true
 	elseif attemptPly:IsSuperAdmin() then
 		set = true
 		force = true
-	else--]]if FACTION:GetSuperParent( attemptPly.FactionData.factionid ) == FACTION:GetSuperParent( changePly.FactionData.factionid ) or FACTION.Ranks[rank].public then
+	elseif FACTION:GetSuperParent( attemptPly.FactionData.factionid ) == FACTION:GetSuperParent( changePly.FactionData.factionid ) or FACTION.Ranks[rank].public then
 		if FACTION.Ranks[tonumber( attemptPly.FactionData.rankid )].controlLevel >= FACTION.Ranks[tonumber( rank )].level then
 			if changePly.FactionData.timeAtRank >= FACTION.Ranks[rank].minTime or FACTION.Ranks[changePly.FactionData.rankid].level >= FACTION.Ranks[ran].level then
 				if FACTION.Ranks[tonumber( rank )].level <= FACTION.Ranks[tonumber( changePly.FactionData.rankid )].level + 1 then
@@ -212,12 +212,9 @@ end
 concommand.Add( "faction_setrank", AttemptSetRank )
 
 function FACTION:SetRank( ply, rank, save )
-	if FACTION.Ranks[ply.FactionData.rankid].faction == FACTION.Ranks[rank].faction then local changeFaction = false
-	else local changeFaction = true end
 	ply.FactionData.rankid = rank
 	if save then 
 		ply.FactionData.timeAtRank = 0
-		if changeFaction then ply.FactionData.timeInFaction = 0 end
 		FACTION:SavePlayerData( ply ) 
 	end
 	ply:ChangeTeam( FACTION.Ranks[rank].job )
@@ -244,4 +241,4 @@ function FACTION:TeamKilling( target, info )
 end
 hook.Add( "EntityTakeDamage", "FACTION:TeamKilling", function( target, damageInfo )
 	return FACTION:TeamKilling( target, damageInfo )
-end );
+end )
