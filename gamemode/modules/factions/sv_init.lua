@@ -217,7 +217,7 @@ function FACTION:SetRank( ply, rank, save )
 		ply.FactionData.timeAtRank = 0
 		FACTION:SavePlayerData( ply ) 
 	end
-	ply:ConCommand( "rp_playermodel", RPExtraTeams[FACTION.Ranks[rank].job].model[1] )
+	ply:SetModel( RPExtraTeams[FACTION.Ranks[rank].job].model[1] )
 	ply:ChangeTeam( FACTION.Ranks[rank].job )
 	print( ply:Nick().."'s rank is now a "..FACTION.Ranks[rank].name )
 end
