@@ -181,7 +181,7 @@ function FACTION:AttemptSetRank( attemptPly, changePly, rank )
 		force = true
 	elseif FACTION:GetSuperParent( attemptPly.FactionData.factionid ) == FACTION:GetSuperParent( changePly.FactionData.factionid ) or FACTION.Ranks[rank].public then
 		if FACTION.Ranks[tonumber( attemptPly.FactionData.rankid )].controlLevel >= FACTION.Ranks[tonumber( rank )].level then
-			if changePly.FactionData.timeAtRank >= FACTION.Ranks[rank].minTime or FACTION.Ranks[changePly.FactionData.rankid].level >= FACTION.Ranks[ran].level then
+			if changePly.FactionData.timeAtRank >= FACTION.Ranks[rank].minTime or FACTION.Ranks[changePly.FactionData.rankid].level >= FACTION.Ranks[rank].level then
 				if FACTION.Ranks[tonumber( rank )].level <= FACTION.Ranks[tonumber( changePly.FactionData.rankid )].level + 1 then
 					set = true
 				end
@@ -217,6 +217,7 @@ function FACTION:SetRank( ply, rank, save )
 		ply.FactionData.timeAtRank = 0
 		FACTION:SavePlayerData( ply ) 
 	end
+	ply:ConCommand( "rp_playermodel", RPExtraTeams[FACTION.Ranks[rank].job].model[1] )
 	ply:ChangeTeam( FACTION.Ranks[rank].job )
 	print( ply:Nick().."'s rank is now a "..FACTION.Ranks[rank].name )
 end
