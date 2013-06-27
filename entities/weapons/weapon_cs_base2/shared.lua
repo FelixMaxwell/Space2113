@@ -93,14 +93,18 @@ function SWEP:Deploy()
 	self.LASTOWNER = self.Owner
 
 	self:SetIronsights(self:GetIronsights())
+
+	// WORKAROUND: Some models have shit viewmodel positions until they fire
+	self.Weapon:SendWeaponAnim(ACT_VM_PRIMARYATTACK)
 	return true
 end
 
 function SWEP:Holster()
+	self.Ironsights = false
+
 	if CLIENT then return end
-	if self:GetIronsights() then
-		hook.Call("UpdatePlayerSpeed", GAMEMODE, self.Owner)
-	end
+	hook.Call("UpdatePlayerSpeed", GAMEMODE, self.Owner)
+
 	return true
 end
 
@@ -300,6 +304,7 @@ function SWEP:GetViewModelPosition(pos, ang)
 
 	local fIronTime = self.fIronTime or 0
 
+	pos = pos + ang:Forward() * -5
 	if GAMEMODE.Config.ironshoot then
 		ang:RotateAroundAxis(ang:Right(), -15)
 	end

@@ -309,7 +309,7 @@ function GM:CanPlayerSuicide(ply)
 		GAMEMODE:Notify(ply, 1, 4, string.format(LANGUAGE.unable, "suicide", ""))
 		return false
 	end
-	if GAMEMODE.Config.wantedsuicide and ply.DarkRPVars.wanted then
+	if GAMEMODE.Config.wantedsuicide and ply:getDarkRPVar("wanted") then
 		GAMEMODE:Notify(ply, 1, 4, string.format(LANGUAGE.unable, "suicide", ""))
 		return false
 	end
@@ -392,7 +392,7 @@ function GM:PlayerDeath(ply, weapon, killer)
 	if GAMEMODE.Config.dropmoneyondeath then
 		local amount = GAMEMODE.Config.deathfee
 		if not ply:CanAfford(GAMEMODE.Config.deathfee) then
-			amount = ply.DarkRPVars.money
+			amount = ply:getDarkRPVar("money")
 		end
 
 		if amount > 0 then
@@ -429,7 +429,7 @@ function GM:PlayerCanPickupWeapon(ply, weapon)
 	if weapon.PlayerUse == false then return false end
 	if ply:IsAdmin() and GAMEMODE.Config.AdminsCopWeapons then return true end
 
-	if GAMEMODE.Config.license and not ply.DarkRPVars.HasGunlicense and not ply:GetTable().RPLicenseSpawn then
+	if GAMEMODE.Config.license and not ply:getDarkRPVar("HasGunlicense") and not ply:GetTable().RPLicenseSpawn then
 		if GAMEMODE.NoLicense[string.lower(weapon:GetClass())] or not weapon:IsWeapon() then
 			return true
 		end
@@ -549,6 +549,11 @@ function meta:SetSelfDarkRPVar(var, value)
 	self:SetDarkRPVar(var, value, self)
 end
 
+function meta:getDarkRPVar(var)
+	self.DarkRPVars = self.DarkRPVars or {}
+	return self.DarkRPVars[var]
+end
+
 local function SendDarkRPVars(ply)
 	if ply.DarkRPVarsSent and ply.DarkRPVarsSent > (CurTime() - 1) then return end --prevent spammers
 	ply.DarkRPVarsSent = CurTime()
@@ -556,7 +561,7 @@ local function SendDarkRPVars(ply)
 	local sendtable = {}
 	for k,v in pairs(player.GetAll()) do
 		sendtable[v] = {}
-		for a,b in pairs(v.DarkRPVars) do
+		for a,b in pairs(v.DarkRPVars or {}) do
 			if not (v.privateDRPVars or {})[a] or ply == v then
 				sendtable[v][a] = b
 			end
@@ -592,7 +597,7 @@ function GM:PlayerSelectSpawn(ply)
 	end
 
 	local POS
-	if spawn.GetPos then
+	if spawn and spawn.GetPos then
 		POS = spawn:GetPos()
 	else
 		POS = ply:GetPos()

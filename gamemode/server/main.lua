@@ -98,7 +98,10 @@ AddChatCommand("/weapondrop", DropWeapon)
 Spawning
  ---------------------------------------------------------*/
 local function SetSpawnPos(ply, args)
-	if not ply:HasPriv("rp_commands") then return "" end
+	if not ply:HasPriv("rp_commands") then
+		GAMEMODE:Notify(ply, 1, 2, string.format(LANGUAGE.need_admin, "setspawn"))
+		return ""
+	end
 
 	local pos = string.Explode(" ", tostring(ply:GetPos()))
 	local selection = "citizen"
@@ -122,7 +125,10 @@ end
 AddChatCommand("/setspawn", SetSpawnPos)
 
 local function AddSpawnPos(ply, args)
-	if not ply:HasPriv("rp_commands") then return "" end
+	if not ply:HasPriv("rp_commands") then
+		GAMEMODE:Notify(ply, 1, 2, string.format(LANGUAGE.need_admin, "addspawn"))
+		return ""
+	end
 
 	local pos = string.Explode(" ", tostring(ply:GetPos()))
 	local selection = "citizen"
@@ -146,7 +152,10 @@ end
 AddChatCommand("/addspawn", AddSpawnPos)
 
 local function RemoveSpawnPos(ply, args)
-	if not ply:HasPriv("rp_commands") then return "" end
+	if not ply:HasPriv("rp_commands") then
+		GAMEMODE:Notify(ply, 1, 2, string.format(LANGUAGE.need_admin, "remove spawn"))
+		return ""
+	end
 
 	local pos = string.Explode(" ", tostring(ply:GetPos()))
 	local selection = "citizen"
@@ -204,7 +213,7 @@ local function LookPersonUp(ply, cmd, args)
 		print("Kills: ".. P:Frags())
 		print("Deaths: ".. P:Deaths())
 
-		print("Money: $" .. P.DarkRPVars.money)
+		print("Money: " .. GAMEMODE.Config.currency .. P:getDarkRPVar("money"))
 	end
 end
 concommand.Add("rp_lookup", LookPersonUp)
@@ -709,16 +718,17 @@ local function ChangeJob(ply, args)
 		return ""
 	end
 
-	local jl = string.lower(args)
-	local t = ply:Team()
-
-	for k,v in pairs(RPExtraTeams) do
-		if jl == v.name then
-			ply:ChangeTeam(k)
+	local canChangeJob, message, replace = hook.Call("canChangeJob", nil, ply, args)
+	if canChangeJob == false then
+		if message then
+			GAMEMODE:Notify(ply, 1, 4, message)
 		end
+		return ""
 	end
-	GAMEMODE:NotifyAll(2, 4, string.format(LANGUAGE.job_has_become, ply:Nick(), args))
-	ply:UpdateJob(args)
+
+	local job = replace or args
+	GAMEMODE:NotifyAll(2, 4, string.format(LANGUAGE.job_has_become, ply:Nick(), job))
+	ply:UpdateJob(job)
 	return ""
 end
 AddChatCommand("/job", ChangeJob)
@@ -1042,7 +1052,7 @@ end
 AddChatCommand("/broadcast", MayorBroadcast, 1.5)
 
 local function SetRadioChannel(ply,args)
-	if tonumber(args) == nil or tonumber(args) < 0 or tonumber(args) > 99 then
+	if tonumber(args) == nil or tonumber(args) < 0 or tonumber(args) > 100 then
 		GAMEMODE:Notify(ply, 1, 4, string.format(LANGUAGE.unable, "/channel", "0<channel<100"))
 		return ""
 	end
@@ -1507,7 +1517,7 @@ local function GrantLicense(answer, Ent, Initiator, Target)
 end
 
 local function RequestLicense(ply)
-	if ply.DarkRPVars.HasGunlicense or ply.LicenseRequested then
+	if ply:getDarkRPVar("HasGunlicense") or ply.LicenseRequested then
 		GAMEMODE:Notify(ply, 1, 4, string.format(LANGUAGE.unable, "/requestlicense", ""))
 		return ""
 	end
@@ -1517,7 +1527,7 @@ local function RequestLicense(ply)
 	local ischief-- then if there's a chief
 	local iscop-- and then if there's a cop to ask
 	for k,v in pairs(player.GetAll()) do
-		if v:Team() == TEAM_MAYOR and not v.DarkRPVars.AFK then
+		if v:Team() == TEAM_MAYOR and not v:getDarkRPVar("AFK") then
 			ismayor = true
 			break
 		end
@@ -1525,7 +1535,7 @@ local function RequestLicense(ply)
 
 	if not ismayor then
 		for k,v in pairs(player.GetAll()) do
-			if v:Team() == TEAM_CHIEF and not v.DarkRPVars.AFK then
+			if v:Team() == TEAM_CHIEF and not v:getDarkRPVar("AFK") then
 				ischief = true
 				break
 			end
@@ -1574,7 +1584,7 @@ local function GiveLicense(ply)
 	local ischief-- then if there's a chief
 	local iscop-- and then if there's a cop to ask
 	for k,v in pairs(player.GetAll()) do
-		if v:Team() == TEAM_MAYOR and not v.DarkRPVars.AFK then
+		if v:Team() == TEAM_MAYOR and not v:getDarkRPVar("AFK") then
 			ismayor = true
 			break
 		end
@@ -1582,7 +1592,7 @@ local function GiveLicense(ply)
 
 	if not ismayor then
 		for k,v in pairs(player.GetAll()) do
-			if v:Team() == TEAM_CHIEF and not v.DarkRPVars.AFK then
+			if v:Team() == TEAM_CHIEF and not v:getDarkRPVar("AFK") then
 				ischief = true
 				break
 			end
@@ -1725,7 +1735,7 @@ local function VoteRemoveLicense(ply, args)
 			GAMEMODE:Notify(ply, 1, 4, string.format(LANGUAGE.have_to_wait, math.ceil(80 - (CurTime() - ply:GetTable().LastVoteCop)), "/demotelicense"))
 			return ""
 		end
-		if ply.DarkRPVars.HasGunlicense then
+		if ply:getDarkRPVar("HasGunlicense") then
 			GAMEMODE:Notify(ply, 1, 4, string.format(LANGUAGE.unable, "/demotelicense", ""))
 		else
 			GAMEMODE:NotifyAll(0, 4, string.format(LANGUAGE.gunlicense_remove_vote_text, ply:Nick(), p:Nick()))

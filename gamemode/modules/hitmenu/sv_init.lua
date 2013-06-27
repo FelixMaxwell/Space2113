@@ -19,7 +19,7 @@ function plyMeta:requestHit(customer, target, price)
 		return false
 	end
 
-	GAMEMODE.ques:Create("Accept hit from " .. customer:Nick() .. "\nregarding " .. target:Nick() .. " for $" .. price .. "?",
+	GAMEMODE.ques:Create("Accept hit from " .. customer:Nick() .. "\nregarding " .. target:Nick() .. " for " .. GAMEMODE.Config.currency .. price .. "?",
 		"hit" .. self:UserID() .. "|" .. customer:UserID() .. "|" .. target:UserID(),
 		self,
 		20,
@@ -116,7 +116,7 @@ AddChatCommand("/hitprice", function(ply, args)
 	ply:setHitPrice(price)
 	price = ply:getHitPrice()
 
-	GAMEMODE:Notify(ply, 2, 4, "Hit price set to $" .. price)
+	GAMEMODE:Notify(ply, 2, 4, "Hit price set to " .. GAMEMODE.Config.currency .. price)
 
 	return ""
 end)
@@ -165,6 +165,8 @@ function DarkRP.hooks:onHitCompleted(hitman, target)
 	DB.Log("Hitman " .. hitman:Nick() .. " finished a hit on " .. targetname .. ", ordered by " .. hits[hitman].customer:Nick() .. " for $" .. hits[hitman].price,
 		false, Color(255, 0, 255))
 
+	target:SetDarkRPVar("lastHitTime", CurTime())
+
 	hitman:finishHit()
 end
 
@@ -183,12 +185,10 @@ end
 hook.Add("PlayerDeath", "DarkRP Hitman System", function(ply, inflictor, attacker)
 	if hits[ply] then -- player was hitman
 		ply:abortHit("The hitman died!")
-		return
 	end
 
 	if IsValid(attacker) and attacker:IsPlayer() and attacker:getHitTarget() == ply then
 		hook.Call("onHitCompleted", DarkRP.hooks, attacker, ply)
-		return
 	end
 
 	for hitman, hit in pairs(hits) do
@@ -231,4 +231,10 @@ hook.Add("playerArrested", "Hitman system", function(ply)
 	umsg.End()
 
 	ply:abortHit("The hitman was arrested!")
+end)
+
+hook.Add("OnPlayerChangedTeam", "Hitman system", function(ply, prev, new)
+	if hits[ply] then
+		ply:abortHit("Player changed team!")
+	end
 end)

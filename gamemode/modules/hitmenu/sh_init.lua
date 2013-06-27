@@ -10,14 +10,18 @@ function plyMeta:hasHit()
 end
 
 function plyMeta:getHitTarget()
-	return self.DarkRPVars.hitTarget
+	return self:getDarkRPVar("hitTarget")
 end
 
 function plyMeta:getHitPrice()
-	return self.DarkRPVars.hitPrice or GAMEMODE.Config.minHitPrice
+	return self:getDarkRPVar("hitPrice") or GAMEMODE.Config.minHitPrice
 end
 
 function DarkRP.addHitmanTeam(job)
+	if not job or not RPExtraTeams[job] then
+		error([[The server owner is trying to add a hitman job, but the job doesn't exist. Get them to fix this.
+		Note: This is the fault of the owner/scripter of this server.]], 0)
+	end
 	hitmanTeams[job] = true
 end
 
@@ -29,6 +33,7 @@ function DarkRP.hooks:canRequestHit(hitman, customer, target, price)
 	if not customer:CanAfford(price) then return false, "Cannot afford!" end
 	if price < GAMEMODE.Config.minHitPrice then return false, "Price too low!" end
 	if hitman:hasHit() then return false, "Hitman already has a hit ongoing" end
+	if IsValid(target) and ((target:getDarkRPVar("lastHitTime") or 0) > CurTime() - GAMEMODE.Config.hitTargetCooldown) then return false, "The target was recently killed" end
 
 	return true
 end

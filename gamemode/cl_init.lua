@@ -13,7 +13,7 @@ local pmeta = FindMetaTable("Player")
 
 pmeta.SteamName = pmeta.SteamName or pmeta.Name
 function pmeta:Name()
-	return GAMEMODE.Config.allowrpnames and self.DarkRPVars and self.DarkRPVars.rpname
+	return GAMEMODE.Config.allowrpnames and self.DarkRPVars and self:getDarkRPVar("rpname")
 		or self:SteamName()
 end
 
@@ -53,11 +53,6 @@ local function LoadModules()
 			include(root.. folder .. "/" ..File)
 		end
 	end
-end
-
-LocalPlayer().DarkRPVars = LocalPlayer().DarkRPVars or {}
-for k,v in pairs(player.GetAll()) do
-	v.DarkRPVars = v.DarkRPVars or {}
 end
 
 GM.Config = {} -- config table
@@ -248,26 +243,32 @@ end
 local function AddToChat(msg)
 	local col1 = Color(msg:ReadShort(), msg:ReadShort(), msg:ReadShort())
 
-	local name = msg:ReadString()
+	local prefixText = msg:ReadString()
 	local ply = msg:ReadEntity()
 	ply = IsValid(ply) and ply or LocalPlayer()
 
-	if name == "" or not name then
-		name = ply:Nick()
-		name = name ~= "" and name or ply:SteamName()
+	if prefixText == "" or not prefixText then
+		prefixText = ply:Nick()
+		prefixText = prefixText ~= "" and prefixText or ply:SteamName()
 	end
 
 	local col2 = Color(msg:ReadShort(), msg:ReadShort(), msg:ReadShort())
 
 	local text = msg:ReadString()
+	local shouldShow
 	if text and text ~= "" then
-		chat.AddText(col1, name, col2, ": "..text)
 		if IsValid(ply) then
-			hook.Call("OnPlayerChat", nil, ply, text, false, not ply:Alive())
+			shouldShow = hook.Call("OnPlayerChat", nil, ply, text, false, not ply:Alive(), prefixText, col1, col2)
+		end
+
+		if shouldShow ~= true then
+			chat.AddText(col1, prefixText, col2, ": "..text)
 		end
 	else
-		chat.AddText(col1, name)
-		hook.Call("ChatText", nil, "0", name, name, "none")
+		shouldShow = hook.Call("ChatText", nil, "0", prefixText, prefixText, "none")
+		if shouldShow ~= true then
+			chat.AddText(col1, prefixText)
+		end
 	end
 	chat.PlaySound()
 end
@@ -390,6 +391,11 @@ local function RetrievePlayerVar(entIndex, var, value, tries)
 	ply.DarkRPVars[var] = value
 end
 
+function pmeta:getDarkRPVar(var)
+	self.DarkRPVars = self.DarkRPVars or {}
+	return self.DarkRPVars[var]
+end
+
 /*---------------------------------------------------------------------------
 Retrieve a player var.
 Read the usermessage and attempt to set the DarkRP var
@@ -421,7 +427,7 @@ function GM:InitPostEntity()
 	RunConsoleCommand("_sendDarkRPvars")
 	timer.Create("DarkRPCheckifitcamethrough", 15, 0, function()
 		for k,v in pairs(player.GetAll()) do
-			if v.DarkRPVars and v.DarkRPVars.rpname then continue end
+			if v.DarkRPVars and v:getDarkRPVar("rpname") then continue end
 
 			RunConsoleCommand("_sendDarkRPvars")
 			return
@@ -491,13 +497,26 @@ usermessage.Hook("DarkRP_Credits", credits)
 -- DarkRP plugin for FAdmin. It's this simple to make a plugin. If FAdmin isn't installed, this code won't bother anyone
 include(GM.FolderName.."/gamemode/shared/fadmin_darkrp.lua")
 
+local function formatNumber(n)
+	if not n then return "" end
+	if n >= 1e14 then return tostring(n) end
+    n = tostring(n)
+    local sep = sep or ","
+    local dp = string.find(n, "%.") or #n+1
+	for i=dp-4, 1, -3 do
+		n = n:sub(1, i) .. sep .. n:sub(i+1)
+    end
+    return n
+end
+
 if not FAdmin or not FAdmin.StartHooks then return end
 FAdmin.StartHooks["DarkRP"] = function()
 	-- DarkRP information:
 	FAdmin.ScoreBoard.Player:AddInformation("Steam name", function(ply) return ply:SteamName() end, true)
-	FAdmin.ScoreBoard.Player:AddInformation("Money", function(ply) if LocalPlayer():IsAdmin() and ply.DarkRPVars and ply.DarkRPVars.money then return "$"..ply.DarkRPVars.money end end)
-	FAdmin.ScoreBoard.Player:AddInformation("Wanted", function(ply) if ply.DarkRPVars and ply.DarkRPVars.wanted then return tostring(ply.DarkRPVars["wantedReason"] or "N/A") end end)
+	FAdmin.ScoreBoard.Player:AddInformation("Money", function(ply) if LocalPlayer():IsAdmin() and ply.DarkRPVars and ply:getDarkRPVar("money") then return GAMEMODE.Config.currency..formatNumber(ply:getDarkRPVar("money")) end end)
+	FAdmin.ScoreBoard.Player:AddInformation("Wanted", function(ply) if ply.DarkRPVars and ply:getDarkRPVar("wanted") then return tostring(ply.DarkRPVars["wantedReason"] or "N/A") end end)
 	FAdmin.ScoreBoard.Player:AddInformation("Community link", function(ply) return FAdmin.SteamToProfile(ply:SteamID()) end)
+	FAdmin.ScoreBoard.Player:AddInformation("Rank", function(ply) return ply:GetNWString("usergroup") end)
 
 	-- Warrant
 	FAdmin.ScoreBoard.Player:AddActionButton("Warrant", "FAdmin/icons/Message",	Color(0, 0, 200, 255),
@@ -510,13 +529,13 @@ FAdmin.StartHooks["DarkRP"] = function()
 
 	--wanted
 	FAdmin.ScoreBoard.Player:AddActionButton(function(ply)
-			return ((ply.DarkRPVars.wanted and "Unw") or "W") .. "anted"
+			return ((ply:getDarkRPVar("wanted") and "Unw") or "W") .. "anted"
 		end,
-		function(ply) return "FAdmin/icons/jail", ply.DarkRPVars.wanted and "FAdmin/icons/disable" end,
+		function(ply) return "FAdmin/icons/jail", ply:getDarkRPVar("wanted") and "FAdmin/icons/disable" end,
 		Color(0, 0, 200, 255),
 		function(ply) local t = LocalPlayer():Team() return t == TEAM_POLICE or t == TEAM_MAYOR or t == TEAM_CHIEF end,
 		function(ply, button)
-			if not ply.DarkRPVars.wanted  then
+			if not ply:getDarkRPVar("wanted")  then
 				Derma_StringRequest("wanted reason", "Enter the reason to arrest this player", "", function(Reason)
 					LocalPlayer():ConCommand("darkrp /wanted \"".. ply:SteamID().."\" ".. Reason)
 				end)
@@ -527,14 +546,13 @@ FAdmin.StartHooks["DarkRP"] = function()
 
 	--Teamban
 	local function teamban(ply, button)
-
 		local menu = DermaMenu()
 		local Title = vgui.Create("DLabel")
 		Title:SetText("  Jobs:\n")
 		Title:SetFont("UiBold")
 		Title:SizeToContents()
 		Title:SetTextColor(color_black)
-		local command = (button.TextLabel:GetText() == "Unban from job") and "rp_teamunban" or "rp_teamban"
+		local command = "rp_teamban"
 
 		menu:AddPanel(Title)
 		for k,v in SortedPairsByMemberValue(RPExtraTeams, "name") do
@@ -549,6 +567,21 @@ FAdmin.StartHooks["DarkRP"] = function()
 	FAdmin.ScoreBoard.Player:AddActionButton("Ban from job", "FAdmin/icons/changeteam", Color(200, 0, 0, 255),
 	function(ply) return FAdmin.Access.PlayerHasPrivilege(LocalPlayer(), "rp_commands", ply) end, teamban)
 
+	local function teamunban(ply, button)
+		local menu = DermaMenu()
+		local Title = vgui.Create("DLabel")
+		Title:SetText("  Jobs:\n")
+		Title:SetFont("UiBold")
+		Title:SizeToContents()
+		Title:SetTextColor(color_black)
+		local command = "rp_teamunban"
+
+		menu:AddPanel(Title)
+		for k,v in SortedPairsByMemberValue(RPExtraTeams, "name") do
+			menu:AddOption(v.name, function() RunConsoleCommand(command, ply:UserID(), k) end)
+		end
+		menu:Open()
+	end
 	FAdmin.ScoreBoard.Player:AddActionButton("Unban from job", function() return "FAdmin/icons/changeteam", "FAdmin/icons/disable" end, Color(200, 0, 0, 255),
-	function(ply) return FAdmin.Access.PlayerHasPrivilege(LocalPlayer(), "rp_commands", ply) end, teamban)
+	function(ply) return FAdmin.Access.PlayerHasPrivilege(LocalPlayer(), "rp_commands", ply) end, teamunban)
 end

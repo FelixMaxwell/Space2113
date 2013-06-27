@@ -200,7 +200,7 @@ function DB.SQLStr(str)
 		return sql.SQLStr(str)
 	end
 
-	return "\"" .. DB.MySQLDB:escape(str) .. "\""
+	return "\"" .. DB.MySQLDB:escape(tostring(str)) .. "\""
 end
 
 /*---------------------------------------------------------
@@ -808,7 +808,7 @@ end
 function DB.RetrieveSalary(ply, callback)
 	if not IsValid(ply) then return 0 end
 
-	if ply.DarkRPVars.salary then return callback and callback(ply.DarkRPVars.salary) end -- First check the cache.
+	if ply:getDarkRPVar("salary") then return callback and callback(ply:getDarkRPVar("salary")) end -- First check the cache.
 
 	DB.QueryValue("SELECT salary FROM darkrp_player WHERE uid = " .. ply:UniqueID() .. ";", function(r)
 		local normal = GAMEMODE.Config.normalsalary

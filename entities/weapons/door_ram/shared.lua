@@ -100,7 +100,7 @@ function SWEP:PrimaryAttack()
 
 	local Owner = trace.Entity:CPPIGetOwner()
 	if Owner then
-		c = Owner.warranted or (Owner.DarkRPVars and Owner.DarkRPVars.wanted)
+		c = Owner.warranted or Owner:isWanted() or Owner:isArrested()
 	end
 	if (trace.Entity:IsDoor()) then
 		local allowed = false
@@ -110,7 +110,7 @@ function SWEP:PrimaryAttack()
 			-- if anyone who owns this door has a warrant for their arrest
 			-- allow the police to smash the door in
 			for k, v in pairs(player.GetAll()) do
-				if trace.Entity:OwnedBy(v) and v.warranted == true then
+				if trace.Entity:OwnedBy(v) and (v.warranted == true or v:isWanted() or v:isArrested()) then
 					allowed = true
 					break
 				end
@@ -123,7 +123,7 @@ function SWEP:PrimaryAttack()
 		if GAMEMODE.Config.doorwarrants and trace.Entity.DoorData.GroupOwn and RPExtraTeamDoors[trace.Entity.DoorData.GroupOwn] then -- Be able to open the door if anyone is warranted
 			allowed = false
 			for k,v in pairs(player.GetAll()) do
-				if table.HasValue(RPExtraTeamDoors[trace.Entity.DoorData.GroupOwn], v:Team()) and v.warranted then
+				if table.HasValue(RPExtraTeamDoors[trace.Entity.DoorData.GroupOwn], v:Team()) and (v.warranted or v:isWanted() or v:isArrested()) then
 					allowed = true
 					break
 				end
@@ -139,11 +139,11 @@ function SWEP:PrimaryAttack()
 			return
 		end
 	elseif (trace.Entity:IsVehicle()) then
-		trace.Entity:Fire("unlock", "", .5)
 		local driver = trace.Entity:GetDriver()
 		if driver and driver.ExitVehicle then
 			driver:ExitVehicle()
 		end
+		trace.Entity:Fire("lock", "", 0)
 	elseif trace.Entity.isFadingDoor and self.Owner:EyePos():Distance(trace.HitPos) < 100 then
 		if not c then
 			GAMEMODE:Notify(self.Owner, 1, 5,"You need a warrant in order to be able to open the fading door.")

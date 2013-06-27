@@ -41,7 +41,6 @@ end
 
 hook.Add("HUDPaint", "DrawHitOption", function()
 	localplayer = localplayer or LocalPlayer()
-	localplayer.DarkRPVars = localplayer.DarkRPVars or {}
 	hudText = hudText or GAMEMODE.Config.hudText
 	local x, y
 	local ply = localplayer:GetEyeTrace().Entity
@@ -66,6 +65,7 @@ hook.Add("KeyPress", "openHitMenu", function(ply, key)
 	if key ~= IN_USE or lastKeyPress > CurTime() - 0.2 then return end
 	lastKeyPress = CurTime()
 	local hitman = localplayer:GetEyeTrace().Entity
+	localplayer = localplayer or LocalPlayer()
 
 	if not IsValid(hitman) or not hitman:IsPlayer() or not hitman:isHitman() or localplayer:GetPos():Distance(hitman:GetPos()) > GAMEMODE.Config.minHitDistance then return end
 
@@ -82,7 +82,6 @@ end)
 
 hook.Add("InitPostEntity", "HitmanMenu", function()
 	for k, v in pairs(player.GetAll()) do
-		v.DarkRPVars = v.DarkRPVars or {}
 		if v:isHitman() and v:hasHit() then
 			v:drawHitInfo()
 		end
